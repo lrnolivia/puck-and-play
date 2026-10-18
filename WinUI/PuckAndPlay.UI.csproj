@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+    <SelfContained>false</SelfContained>
+    <Nullable>annotations</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>PuckAndPlay.UI</AssemblyName>
+    <RootNamespace>PuckPlay</RootNamespace>
+    <Version>2.6.0</Version>
+    <Company>loew.fi</Company>
+    <Product>Puck &amp; Play</Product>
+    <ApplicationIcon>..\assets\puck-play.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <Compile Include="..\Models.cs" Link="Shared\Models.cs" />
+    <Compile Include="..\ConnectionView.cs" Link="Shared\ConnectionView.cs" />
+    <Compile Include="..\UsbDevices.cs" Link="Shared\UsbDevices.cs" />
+    <Compile Include="..\ReceiverConfiguration.cs" Link="Shared\ReceiverConfiguration.cs" />
+    <Compile Include="..\DeviceFault.cs" Link="Shared\DeviceFault.cs" />
+    <Compile Include="..\ControllerConnection.cs" Link="Shared\ControllerConnection.cs" />
+    <Content Include="..\assets\puck-play-mark.png" Link="Assets\puck.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\assets\puck-play.ico" Link="Assets\puck.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\assets\steam-glyph.path" Link="Assets\steam.path" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\assets\puck-base-mark.png" Link="Assets\puck-base.png" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\assets\puck-base-mark.png')" />
+    <Content Include="..\assets\status\*.png;..\assets\status\*.ico" Link="Assets\Status\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\assets\crystal\play.mesh" Link="Assets\Crystal\play.mesh" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\assets\crystal\studio.rgba16f" Link="Assets\Crystal\studio.rgba16f" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\assets\crystal.hlsl" Link="Assets\Crystal\crystal.hlsl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\assets\studio\source.json" Link="Notices\Studio\source.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\assets\pathtraced\*.png" Exclude="..\assets\pathtraced\cloud-*.png;..\assets\pathtraced\shell-*.png" Link="Assets\Rendered\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="Vortice.D3DCompiler" Version="3.8.3" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+  </ItemGroup>
+</Project>

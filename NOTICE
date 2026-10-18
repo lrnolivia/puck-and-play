@@ -1,0 +1,13 @@
+Puck & Play is an independent utility and is not affiliated with Valve or Microsoft.
+Steam and Steam Controller are trademarks of Valve Corporation.
+
+The controller report identifiers follow Valve's Triton protocol, as documented
+in SDL's Steam Controller driver and public protocol headers:
+https://github.com/libsdl-org/SDL/tree/main/src/joystick/hidapi/steam
+
+The studio lighting used to make the artwork is Poly Haven's Studio Small 09,
+released under CC0. See assets/studio/source.json.
+
+Third-party runtime license notices are distributed beside the interface in
+Interface/<version>/Notices. Those notices and their copyright statements remain
+applicable to their respective components.

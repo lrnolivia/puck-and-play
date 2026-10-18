@@ -173,7 +173,7 @@ internal sealed class AboutWindow : FluentWindow
 internal sealed class StatusWindow : FluentWindow
 {
     readonly App app;
-    readonly TextBlock title, summary, puck, steam, controller, controllerDetail, checkedAt, reconnectNote, careDetail;
+    readonly TextBlock title, summary, puck, steam, controller, checkedAt, reconnectNote, careDetail;
     readonly ToggleSwitch care;
     readonly Button check, reconnect, play;
     readonly CrystalStatusMark playArt = new CrystalStatusMark { Width = 96, Height = 96 };
@@ -238,8 +238,7 @@ internal sealed class StatusWindow : FluentWindow
         steam = Text("Checking...");
         rows.Children.Add(Row(Symbol.Link, "Puck USB", null, puck));
         controller = Text("Checking...");
-        controllerDetail = Text("", 12, true);
-        rows.Children.Add(Row(new FontIcon { Glyph = "\uE7FC", FontSize = 20 }, "Controller", controllerDetail, controller));
+        rows.Children.Add(Row(new FontIcon { Glyph = "\uE7FC", FontSize = 20 }, "Controller", null, controller));
         string steamPath = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "steam.path"));
         var steamGlyph = (FrameworkElement)XamlReader.Load("<Path xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' Width='20' Height='20' Stretch='Uniform' Fill='{ThemeResource TextFillColorPrimaryBrush}' Data='" + steamPath + "' />");
         rows.Children.Add(Row(steamGlyph, "Steam", null, steam));
@@ -399,7 +398,6 @@ internal sealed class StatusWindow : FluentWindow
         checkedAt.Text = view.Checked;
         var controllerView = ControllerConnection.Display(snapshot?.Controller, DateTime.Now);
         controller.Text = controllerView.Status;
-        controllerDetail.Text = controllerView.Connected == true ? "Live input reports" : "Checked separately from USB";
         ToolTipService.SetToolTip(controller, controllerView.Detail);
         UpdatePlay(view);
         bool on = paused <= DateTime.UtcNow;

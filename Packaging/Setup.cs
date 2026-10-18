@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -142,6 +143,7 @@ namespace PuckPlay.Setup
 
     sealed class InstallerWindow : Form
     {
+        readonly List<IDisposable> owned = new List<IDisposable>();
         readonly CheckBox startup = new CheckBox { Text = "Open automatically when I sign in", Checked = true, AutoSize = true };
         readonly CheckBox recovery = new CheckBox { Text = "Enable automatic USB recovery", Checked = true, AutoSize = true };
         readonly Button install = new Button { Text = "Install", Width = 104, Height = 36 };
@@ -151,9 +153,11 @@ namespace PuckPlay.Setup
 
         internal InstallerWindow()
         {
+            SuspendLayout();
             Text = "Install Puck & Play";
             Font = new Font("Segoe UI", 10);
             ClientSize = new Size(500, 500);
+            AutoScaleDimensions = new SizeF(96, 96);
             AutoScaleMode = AutoScaleMode.Dpi;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -162,9 +166,24 @@ namespace PuckPlay.Setup
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PuckPlay.Icon"))
             using (var source = new Icon(stream))
                 Icon = (Icon)source.Clone();
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(28), ColumnCount = 1, RowCount = 8 };
-            layout.Controls.Add(new Label { Text = "Puck & Play", Font = new Font("Segoe UI Semibold", 24), AutoSize = true });
-            layout.Controls.Add(new Label { Text = "A little care. More play.", AutoSize = true, Margin = new Padding(0, 0, 0, 20) });
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(28), ColumnCount = 1, RowCount = 7 };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            var header = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 0, 0, 24) };
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 88));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            Image artwork;
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PuckPlay.SetupArtwork"))
+            using (var source = Image.FromStream(stream))
+                artwork = new Bitmap(source);
+            owned.Add(artwork);
+            header.Controls.Add(new PictureBox { Image = artwork, SizeMode = PictureBoxSizeMode.Zoom, Size = new Size(72, 72), Margin = Padding.Empty, TabStop = false, AccessibleName = "Puck and green play crystal" }, 0, 0);
+            var wordmark = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Anchor = AnchorStyles.Left, Margin = Padding.Empty };
+            var headingFont = new Font("Segoe UI Semibold", 24);
+            owned.Add(headingFont);
+            wordmark.Controls.Add(new AlignedLabel { Text = "Puck & Play", Font = headingFont, AutoSize = true, Margin = Padding.Empty });
+            wordmark.Controls.Add(new AlignedLabel { Text = "A little care. More play.", AutoSize = true, Margin = new Padding(0, 4, 0, 0) });
+            header.Controls.Add(wordmark, 1, 0);
+            layout.Controls.Add(header);
             layout.Controls.Add(new Label { Text = "Keep your Steam Controller puck ready, see when your controller connects, and test your inputs in Steam.", AutoSize = true, MaximumSize = new Size(438, 0), Margin = new Padding(0, 0, 0, 18) });
             layout.Controls.Add(startup);
             layout.Controls.Add(recovery);
@@ -177,6 +196,8 @@ namespace PuckPlay.Setup
             footer.Controls.Add(cancel);
             Controls.Add(layout);
             Controls.Add(footer);
+            AcceptButton = install;
+            CancelButton = cancel;
             cancel.Click += delegate
             {
                 Close();
@@ -208,6 +229,25 @@ namespace PuckPlay.Setup
                 catch (Exception error) { status.Text = "Setup couldn't finish."; MessageBox.Show(this, error.Message, "Puck & Play setup", MessageBoxButtons.OK, MessageBoxIcon.Error); }
                 finally { installing = false; install.Enabled = true; cancel.Enabled = true; progress.Visible = false; }
             };
+            ResumeLayout(true);
+        }
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (disposing)
+            { foreach (var resource in owned) resource.Dispose(); owned.Clear(); }
+        }
+    }
+    sealed class AlignedLabel:Label
+    {
+        const TextFormatFlags Flags=TextFormatFlags.NoPadding|TextFormatFlags.SingleLine|TextFormatFlags.NoPrefix;
+        public override Size GetPreferredSize(Size proposedSize)
+        {
+            return TextRenderer.MeasureText(Text,Font,Size.Empty,Flags);
+        }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            TextRenderer.DrawText(e.Graphics,Text,Font,ClientRectangle,ForeColor,Flags);
         }
     }
 }

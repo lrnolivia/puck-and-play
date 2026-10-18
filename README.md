@@ -4,7 +4,7 @@ A little care. More play.
 
 A small Windows companion for the Steam Controller puck. It checks the receiver after startup and sleep, watches for live controller reports, and recovers USB faults that Windows can safely restart.
 
-**[Download the latest release](https://github.com/lrnolivia/puck-and-play/releases/latest)** Â· [Report a problem](https://github.com/lrnolivia/puck-and-play/issues)
+**[Download the latest release](https://github.com/lrnolivia/puck-and-play/releases/latest)** · [Report a problem](https://github.com/lrnolivia/puck-and-play/issues)
 
 ## Get started
 
@@ -17,7 +17,7 @@ You need **Windows 11, x64**, Steam, and the Steam Controller receiver identifie
 3. Choose whether to open at sign-in and enable USB recovery.
 4. Approve Windows' administrator prompt if you enable recovery. Routine checks then run without prompts.
 
-The app lives in your local Programs folder. Recovery installs a protected helper and two on-demand scheduled tasks. It requires approval from the signed-in administrator account. You can enable it later under **Troubleshooting â†’ Enable recovery**.
+The app lives in your local Programs folder. Recovery installs a protected helper and two on-demand scheduled tasks. It requires approval from the signed-in administrator account. You can enable it later under **Troubleshooting → Enable recovery**.
 
 Releases are unsigned, so Windows may show an unfamiliar-publisher warning. Download from this repository's Releases page and compare the supplied SHA-256 checksums to verify files.
 
@@ -25,7 +25,7 @@ Releases are unsigned, so Windows may show an unfamiliar-publisher warning. Down
 
 Download the portable ZIP, extract the whole folder, and open **PuckAndPlay.exe**. Keep its `Interface` folder beside it. The application runtimes are included; you don't need the .NET SDK or Blender.
 
-Choose **Troubleshooting â†’ Set up receiver** with one working puck connected. The portable app does not add itself to startup. Enabling elevated recovery makes a persistent installation of the recovery helper, even when the main app is portable.
+Choose **Troubleshooting → Set up receiver** with one working puck connected. The portable app does not add itself to startup. Enabling elevated recovery makes a persistent installation of the recovery helper, even when the main app is portable.
 
 ## Read the connection view
 
@@ -39,7 +39,7 @@ Click the tray icon for three separate observations:
 
 **Connected** means a current controller report arrived. **Disconnected** means the receiver explicitly reported a disconnect. **Not detected** or **Unknown** means a connection could not be confirmed: the controller may be asleep, no report arrived, or another app holds the interface. It does not prove a disconnection.
 
-Choose **Test inputs** to open Steam's controller settings. Select the controller, then **Test Device Inputs â†’ Begin Test**. Steam runs the input test.
+Choose **Test inputs** to open Steam's controller settings. Select the controller, then **Test Device Inputs → Begin Test**. Steam runs the input test.
 
 The crystal reflects receiver and care status: green is ready, yellow needs attention, red means the puck is absent, and grey means there is no current observation. Read the Controller row separately. A ready receiver cannot guarantee a game's Steam Input configuration is correct.
 
@@ -75,7 +75,7 @@ To remove an installed copy, use **Uninstall Puck & Play** in Start. Removing el
 
 There is no telemetry or network service. The app reads local device information, passive controller reports, Steam's local status, and its own settings. It does not save button presses, change controller modes, or collect account credentials. Opening Steam can cause Steam itself to use the network.
 
-**Troubleshooting â†’ Technical details** provides a copyable snapshot. Connection and recovery logs are available there too. Logs rotate to bound disk use. Settings live in `%LOCALAPPDATA%\SteamControllerGuard`; protected enrollment and recovery state live in `%PROGRAMDATA%\SteamControllerGuard`.
+**Troubleshooting → Technical details** provides a copyable snapshot. Connection and recovery logs are available there too. Logs rotate to bound disk use. Settings live in `%LOCALAPPDATA%\SteamControllerGuard`; protected enrollment and recovery state live in `%PROGRAMDATA%\SteamControllerGuard`.
 
 Before posting diagnostics, review them for serial numbers, account names, and personal paths. Include the Windows and app versions, whether the failure followed boot or wake, and what the controller light did.
 
@@ -101,6 +101,6 @@ Enrollment and repair are separate from these tests. Do not run recovery command
 
 ## License
 
-MIT. Copyright Â© 2026 Lauren Olivia. See [LICENSE](LICENSE).
+MIT. Copyright © 2026 Lauren Olivia. See [LICENSE](LICENSE).
 
 An independent utility. Steam and Steam Controller belong to Valve; Windows and Fluent belong to Microsoft. Third-party software and studio-lighting notices are included in the packages; see [NOTICE](NOTICE).

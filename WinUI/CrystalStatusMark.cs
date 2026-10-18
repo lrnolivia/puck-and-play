@@ -18,7 +18,7 @@ internal sealed class CrystalStatusMark : UserControl
 {
     readonly Grid root = new Grid();
     readonly Image fallback = new Image { Stretch = Stretch.Uniform };
-    readonly FrameworkElement contrastMark = (FrameworkElement)XamlReader.Load("<Path xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' Stretch='Uniform' Margin='26' Fill='{ThemeResource TextFillColorPrimaryBrush}' Data='M 0,0 L 1,0.577 L 0,1.154 Z' />");
+    readonly FrameworkElement contrastMark = (FrameworkElement)XamlReader.Load("<Path xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' Stretch='Uniform' Margin='26' Fill='White' Data='M 0,0 L 1,0.577 L 0,1.154 Z' />");
     readonly UISettings settings = new UISettings();
     readonly AccessibilitySettings accessibility = new AccessibilitySettings();
     readonly bool platter, forceRenderer;
@@ -187,6 +187,8 @@ internal sealed class CrystalStatusMark : UserControl
     void Apply()
     {
         bool contrast = accessibility.HighContrast;
+        if (contrast && contrastMark is Microsoft.UI.Xaml.Shapes.Path path && path.Fill is SolidColorBrush brush)
+            brush.Color = settings.GetColorValue(UIColorType.Foreground);
         contrastMark.Visibility = contrast ? Visibility.Visible : Visibility.Collapsed;
         if (renderer == null || closed)
             return;

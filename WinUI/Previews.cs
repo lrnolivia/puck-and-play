@@ -99,6 +99,19 @@ internal static class Previews
         long baselineBytes = 0;
         int baselineHandles = 0;
         object? timing = null;
+        // The packaged graphics runtime initializes native caches asynchronously.
+        // A single long-lived mark exercises that startup before the lifecycle
+        // measurement, so its one-time allocation isn't counted as per-mark growth.
+        using (var startup = new CrystalRenderer(compositor, 192, error => Bridge.Log(error)))
+        {
+            startup.Update("green", true, false);
+            for (int sample = 0; sample < 10; sample++)
+            {
+                await Task.Delay(1000);
+                process.Refresh();
+                await File.AppendAllTextAsync(Path.Combine(directory, "startup-control.jsonl"), System.Text.Json.JsonSerializer.Serialize(new { Sample = sample, Handles = process.HandleCount, Bytes = process.PrivateMemorySize64, Threads = process.Threads.Count, Modules = process.Modules.Count }) + Environment.NewLine);
+            }
+        }
         for (int cycle = 0; cycle < 24; cycle++)
         {
             Exception? failure = null;

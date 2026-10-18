@@ -558,6 +558,13 @@ internal sealed class MenuWindow : Window
     internal bool IsOpen { get; private set; }
     internal event Action? Dismissed;
     readonly IntPtr handle;
+    readonly SubclassProc positionHook;
+    delegate IntPtr SubclassProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam, UIntPtr id, UIntPtr data);
+    [StructLayout(LayoutKind.Sequential)]
+    struct WindowPosition { internal IntPtr Window, InsertAfter; internal int X, Y, Width, Height; internal uint Flags; }
+    [DllImport("comctl32.dll", SetLastError = true)] static extern bool SetWindowSubclass(IntPtr window, SubclassProc callback, UIntPtr id, UIntPtr data);
+    [DllImport("comctl32.dll")] static extern bool RemoveWindowSubclass(IntPtr window, SubclassProc callback, UIntPtr id);
+    [DllImport("comctl32.dll")] static extern IntPtr DefSubclassProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll", SetLastError = true)]
     static extern int GetWindowLongW(IntPtr window, int index);
     [DllImport("user32.dll", SetLastError = true)]
@@ -589,9 +596,12 @@ internal sealed class MenuWindow : Window
         SetWindowLongW(handle, -20, GetWindowLongW(handle, -20) | 0x80000);
         if (!SetLayeredWindowAttributes(handle, 0, 0, 2))
             throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        positionHook = KeepAnchor;
+        if (!SetWindowSubclass(handle, positionHook, new UIntPtr(1), UIntPtr.Zero))
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         Build();
         AppWindow.MoveAndResize(new RectInt32(-32000, -32000, 1, 1));
-        Root.Loaded += delegate { ShowPending(); };
+        Root.Loaded += delegate { app.Queue.TryEnqueue(ShowPending); };
         Closed += delegate { closed = true; };
         Flyout.Closed += delegate
         {
@@ -600,6 +610,22 @@ internal sealed class MenuWindow : Window
             AppWindow?.Hide();
             Dismissed?.Invoke();
         };
+    }
+    IntPtr KeepAnchor(IntPtr window, uint message, IntPtr wParam, IntPtr lParam, UIntPtr id, UIntPtr data)
+    {
+        // Windows can apply default placement after XAML has loaded. Keep that
+        // native position change from moving an already-open tray flyout.
+        if (message == 0x46 && (pendingOpen || IsOpen)) // WM_WINDOWPOSCHANGING
+        {
+            var position = Marshal.PtrToStructure<WindowPosition>(lParam);
+            position.X = x;
+            position.Y = y;
+            position.Flags &= ~2u; // SWP_NOMOVE
+            Marshal.StructureToPtr(position, lParam, false);
+        }
+        if (message == 0x82) // WM_NCDESTROY
+            RemoveWindowSubclass(window, positionHook, id);
+        return DefSubclassProc(window, message, wParam, lParam);
     }
     internal void Prepare()
     {

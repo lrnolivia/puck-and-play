@@ -456,7 +456,10 @@ internal static class Previews
                     bool onScreen = left >= bounds.X - 2 && top >= bounds.Y - 2 && right <= bounds.X + bounds.Width + 2 && bottom <= bounds.Y + bounds.Height + 2;
                     results.Add(new { Requested = new { point.X, point.Y }, Host = new { X = window.AppWindow.Position.X, Y = window.AppWindow.Position.Y, window.AppWindow.Size.Width, window.AppWindow.Size.Height, Transparent = window.HostIsTransparent }, Menu = new { left, top, right, bottom }, Scale = scale, NearAnchor = nearAnchor, OnScreen = onScreen });
                     if (!nearAnchor || !onScreen)
+                    {
+                        await File.WriteAllTextAsync(Path.Combine(directory, "menu-anchor-failure.json"), System.Text.Json.JsonSerializer.Serialize(results));
                         throw new InvalidOperationException("The tray menu opened away from its invocation point or outside its display.");
+                    }
                     if (!window.HostIsTransparent)
                     {
                         await File.WriteAllTextAsync(Path.Combine(directory, "host-failure.json"), System.Text.Json.JsonSerializer.Serialize(results));

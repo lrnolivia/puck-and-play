@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          global-json-file: global.json
+      - name: Build and verify
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          ./Build-Release.ps1
+          $version=(Get-Item bin/PuckAndPlay.exe).VersionInfo.FileVersion
+          if ('v'+([version]$version).ToString(3) -ne $env:RELEASE_TAG) { throw 'The tag and application version do not match.' }
+      - name: Publish installer and portable package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $notes=Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          @'
+          Puck & Play for Windows 11 x64.
+
+          - Live controller connection status, including keyboard/mouse HID interfaces.
+          - A Test inputs button that opens Steam's controller settings.
+          - Receiver enrollment and bounded recovery for supported USB faults.
+          - A native animated crystal with shared graphics resources and idle rendering suspension.
+
+          Choose Setup for installation and startup options, or extract the portable ZIP and run PuckAndPlay.exe. Optional USB recovery requires administrator approval. Releases are unsigned. See the README for supported hardware, recovery limits, and troubleshooting.
+          '@ | Set-Content -LiteralPath $notes -Encoding utf8
+          $assets=@(Get-ChildItem dist/*-Setup.exe,dist/*-portable-windows-x64.zip,dist/SHA256SUMS.txt | ForEach-Object FullName)
+          gh release create $env:RELEASE_TAG --verify-tag --title ('Puck & Play '+$env:RELEASE_TAG.TrimStart('v')) --notes-file $notes @assets
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }

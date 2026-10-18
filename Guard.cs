@@ -16,7 +16,7 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Puck & Play")]
 [assembly: AssemblyProduct("Puck & Play")]
 [assembly: AssemblyCompany("loew.fi")]
-[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyVersion("1.2.1.0")]
 
 namespace SteamControllerGuard
 {
@@ -417,7 +417,7 @@ namespace SteamControllerGuard
             {
                 if (e.Button == MouseButtons.Left)
                     ShowStatus();
-                if (e.Button == MouseButtons.Right && UiHost.Available && !UiHost.TryOpen("menu " + Cursor.Position.X + " " + Cursor.Position.Y))
+                if (e.Button == MouseButtons.Right && UiHost.Available && !UiHost.TryOpenMenu())
                     menu.Show(Cursor.Position);
             };
             showStatusSignal = new EventWaitHandle(false, EventResetMode.AutoReset, Runtime.ShowStatusSignal);

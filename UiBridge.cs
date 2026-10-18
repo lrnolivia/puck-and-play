@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
@@ -11,6 +12,17 @@ namespace SteamControllerGuard
 {
     static class UiHost
     {
+        [DllImport("user32.dll")]
+        static extern bool GetPhysicalCursorPos(out System.Drawing.Point point);
+
+        public static bool TryOpenMenu()
+        {
+            System.Drawing.Point point;
+            if (!GetPhysicalCursorPos(out point))
+                point = System.Windows.Forms.Cursor.Position;
+            return TryOpen("menu " + point.X + " " + point.Y);
+        }
+
         public static string Executable
         {
             get

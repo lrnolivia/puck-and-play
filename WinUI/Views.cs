@@ -562,15 +562,21 @@ internal sealed class MenuWindow : Window
         presenter.IsResizable = false;
         presenter.IsMinimizable = false;
         presenter.IsMaximizable = false;
-        AppWindow.Resize(new SizeInt32(2, 2));
-        AppWindow.Move(new PointInt32(x, y));
         Build();
         Root.Loaded += delegate
         {
             if (!opened)
             {
                 opened = true;
-                Flyout.ShowAt(Root, new FlyoutShowOptions { Position = new Windows.Foundation.Point(0, 0) });
+                // The first show can apply Windows' default size and centered
+                // position, so place the host after its native window is ready.
+                AppWindow.MoveAndResize(new RectInt32(x, y, 2, 2));
+                var origin = AppWindow.Position;
+                double scale = Root.XamlRoot.RasterizationScale;
+                Flyout.ShowAt(Root, new FlyoutShowOptions
+                {
+                    Position = new Windows.Foundation.Point((x - origin.X) / scale, (y - origin.Y) / scale)
+                });
             }
         };
         Flyout.Closed += delegate

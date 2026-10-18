@@ -36,6 +36,8 @@ jobs:
           @'
           Puck & Play for Windows 11 x64.
 
+          - A tray menu that opens at the tray icon instead of the center of the screen.
+          - A clearer README with the app logo and screenshots.
           - Live controller connection status, including keyboard/mouse HID interfaces.
           - A Test inputs button that opens Steam's controller settings.
           - Receiver enrollment and bounded recovery for supported USB faults.

@@ -364,7 +364,7 @@ internal static class Previews
     static Snapshot Sample(bool present = true) => new Snapshot
     {
         At = DateTime.Now.ToString("o"),
-        Version = "1.2.0",
+        Version = "1.2.1",
         Controller = new ControllerObservation { At = DateTime.Now.ToString("o"), Status = present ? "Connected" : "Unavailable", Connected = present ? (bool?)true : null, Detail = present ? "Live controller reports received through the puck." : "Connect the puck to check the controller." },
         Status = present ? "Puck ready; Steam running" : "Puck absent: waiting for USB connection",
         SteamRunning = true,
@@ -416,6 +416,56 @@ internal static class Previews
         await Capture(popup.Child, path);
         window.Flyout.Hide();
     }
+    static async Task MenuAnchor(App app, string directory)
+    {
+        var results = new List<object>();
+        var displays = Microsoft.UI.Windowing.DisplayArea.FindAll();
+        for (int display = 0; display < displays.Count; display++)
+        {
+            var area = displays[display];
+            var bounds = area.OuterBounds;
+            foreach (var point in new[]
+            {
+                new PointInt32(bounds.X + 24, bounds.Y + 24),
+                new PointInt32(bounds.X + bounds.Width - 40, bounds.Y + 24),
+                new PointInt32(bounds.X + 24, bounds.Y + bounds.Height - 24),
+                new PointInt32(bounds.X + bounds.Width - 40, bounds.Y + bounds.Height - 24)
+            })
+            {
+                var window = new MenuWindow(app, point.X, point.Y);
+                window.AppWindow.Show(false);
+                try
+                {
+                    await Task.Delay(400);
+                    var child = VisualTreeHelper.GetOpenPopupsForXamlRoot(window.Root.XamlRoot).FirstOrDefault()?.Child as FrameworkElement;
+                    if (child == null)
+                        throw new InvalidOperationException("The tray menu did not open.");
+                    var offset = child.TransformToVisual(window.Root).TransformPoint(new Windows.Foundation.Point());
+                    double scale = window.Root.XamlRoot.RasterizationScale;
+                    double left = window.AppWindow.Position.X + offset.X * scale;
+                    double top = window.AppWindow.Position.Y + offset.Y * scale;
+                    double right = left + child.ActualWidth * scale;
+                    double bottom = top + child.ActualHeight * scale;
+                    double gapX = Math.Max(0, Math.Max(left - point.X, point.X - right));
+                    double gapY = Math.Max(0, Math.Max(top - point.Y, point.Y - bottom));
+                    var work = area.WorkArea;
+                    double reservedX = Math.Max(work.X - bounds.X, bounds.X + bounds.Width - work.X - work.Width);
+                    double reservedY = Math.Max(work.Y - bounds.Y, bounds.Y + bounds.Height - work.Y - work.Height);
+                    bool nearAnchor = gapX <= reservedX + 16 * scale && gapY <= reservedY + 16 * scale;
+                    bool onScreen = left >= bounds.X - 2 && top >= bounds.Y - 2 && right <= bounds.X + bounds.Width + 2 && bottom <= bounds.Y + bounds.Height + 2;
+                    results.Add(new { Requested = new { point.X, point.Y }, Host = new { X = window.AppWindow.Position.X, Y = window.AppWindow.Position.Y }, Menu = new { left, top, right, bottom }, Scale = scale, NearAnchor = nearAnchor, OnScreen = onScreen });
+                    if (!nearAnchor || !onScreen)
+                        throw new InvalidOperationException("The tray menu opened away from its invocation point or outside its display.");
+                }
+                finally { window.Flyout.Hide(); }
+            }
+        }
+        await File.WriteAllTextAsync(Path.Combine(directory, "menu-anchor.json"), System.Text.Json.JsonSerializer.Serialize(new
+        {
+            Cases = results,
+            HardwareActions = 0
+        }));
+    }
     internal static async Task Render(App app, string directory)
     {
         ReceiverConfiguration.UseTestProfile(new ReceiverProfile { DeviceId = @"USB\VID_28DE&PID_1304\PREVIEW", Parent = @"USB\ROOT_HUB30\PREVIEW", Port = 2, Locations = new[] { "PREVIEW_PORT" } });
@@ -425,6 +475,7 @@ internal static class Previews
         keeper.AppWindow.Move(new PointInt32(-12000, -12000));
         keeper.AppWindow.Show(false);
         Bridge.Sample = Sample();
+        await MenuAnchor(app, directory);
         await Save(new AboutWindow(), ElementTheme.Dark, Path.Combine(directory, "about-dark.png"));
         await Save(new AboutWindow(), ElementTheme.Light, Path.Combine(directory, "about-light.png"));
         await Save(new StatusWindow(app), ElementTheme.Dark, Path.Combine(directory, "status-ready.png"));

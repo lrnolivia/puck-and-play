@@ -13,6 +13,11 @@ $dotnet='dotnet'
 if($LASTEXITCODE -ne 0){throw 'Self-contained interface publication failed.'}
 foreach($name in @('PuckAndPlay.exe','Guard.Diagnostics.exe')){Copy-Item -LiteralPath (Join-Path $PSScriptRoot ('bin\'+$name)) -Destination $package}
 foreach($name in @('README.md','LICENSE','NOTICE')){if(Test-Path -LiteralPath (Join-Path $PSScriptRoot $name)){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination $package}}
+foreach($relative in @('assets\status\puck-green.png','docs\images\main-window.png','docs\images\tray-menu.png')) {
+    $destination=Join-Path $package $relative
+    New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($destination)) -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot $relative) -Destination $destination
+}
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'assets\puck-play.ico') -Destination (Join-Path $package 'puck.ico')
 Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'Packaging') -File | Where-Object {$_.Extension -in @('.ps1','.cmd')} | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination $package}
 $noticeSource=Join-Path $PSScriptRoot 'bin\WinUI\Notices'

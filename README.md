@@ -1,3 +1,5 @@
+<img src="assets/status/puck-green.png" width="96" alt="Puck & Play logo">
+
 # Puck & Play
 
 A little care. More play.
@@ -6,6 +8,8 @@ A small Windows companion for the Steam Controller puck. It checks the receiver 
 
 **[Download the latest release](https://github.com/lrnolivia/puck-and-play/releases/latest)** · [Report a problem](https://github.com/lrnolivia/puck-and-play/issues)
 
+<img src="docs/images/main-window.png" width="420" alt="Puck & Play showing receiver, controller, and Steam status, with automatic care and input testing">
+
 ## Get started
 
 You need **Windows 11, x64**, Steam, and the Steam Controller receiver identified by `VID_28DE&PID_1304`. The original 2015 receiver and Bluetooth connections are outside this app's scope.
@@ -13,7 +17,7 @@ You need **Windows 11, x64**, Steam, and the Steam Controller receiver identifie
 ### Install
 
 1. Connect one working puck. Disconnect additional pucks during setup.
-2. Download and open **PuckAndPlay-1.2.0-Setup.exe** from Releases.
+2. Download and open **PuckAndPlay-1.2.1-Setup.exe** from Releases.
 3. Choose whether to open at sign-in and enable USB recovery.
 4. Approve Windows' administrator prompt if you enable recovery. Routine checks then run without prompts.
 
@@ -23,7 +27,7 @@ Releases are unsigned, so Windows may show an unfamiliar-publisher warning. Down
 
 ### Portable
 
-Download the portable ZIP, extract the whole folder, and open **PuckAndPlay.exe**. Keep its `Interface` folder beside it. The application runtimes are included; you don't need the .NET SDK or Blender.
+Download the portable ZIP, extract the whole folder, and open **PuckAndPlay.exe**. Keep its `Interface` folder beside it. The application runtimes are included.
 
 Choose **Troubleshooting → Set up receiver** with one working puck connected. The portable app does not add itself to startup. Enabling elevated recovery makes a persistent installation of the recovery helper, even when the main app is portable.
 
@@ -41,9 +45,9 @@ Click the tray icon for three separate observations:
 
 Choose **Test inputs** to open Steam's controller settings. Select the controller, then **Test Device Inputs → Begin Test**. Steam runs the input test.
 
-The crystal reflects receiver and care status: green is ready, yellow needs attention, red means the puck is absent, and grey means there is no current observation. Read the Controller row separately. A ready receiver cannot guarantee a game's Steam Input configuration is correct.
+The play icon reflects receiver and care status: green is ready, yellow needs attention, red means the puck is absent, and grey means there is no current observation. Read the Controller row separately. A ready receiver cannot guarantee a game's Steam Input configuration is correct.
 
-The native interface follows Windows themes, high contrast, transparency, and animation settings. Its transparent 3D crystal targets 120 updates per second while visible; actual presentation depends on hardware and display. Rendering sleeps when motion is paused or the state is static. Closing the window stops rendering and leaves care running in the tray. A single graphics device is shared while the interface process is open.
+The interface follows your Windows theme, high contrast, transparency, and animation settings. Closing the window stops the play icon's animation and leaves automatic care running in the tray.
 
 ## What automatic care can recover
 
@@ -68,6 +72,8 @@ No helper can guarantee every connection. Bad cables, insufficient power, radio 
 ## Everyday controls
 
 Right-click the tray icon for checks, Steam settings, troubleshooting, and **Quit**. **Pause for 30 minutes** keeps observations visible while pausing automatic Steam startup and recovery. Resume early whenever you're ready.
+
+<img src="docs/images/tray-menu.png" width="280" alt="Puck & Play tray menu with quick checks, Steam controller settings, pause, and troubleshooting">
 
 To remove an installed copy, use **Uninstall Puck & Play** in Start. Removing elevated recovery needs administrator approval. Settings and logs are retained. For a portable copy, quit and delete the extracted folder; remove elevated recovery separately if enabled.
 

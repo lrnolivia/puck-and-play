@@ -15,7 +15,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <AssemblyName>PuckAndPlay.UI</AssemblyName>
     <RootNamespace>PuckPlay</RootNamespace>
-    <Version>2.6.0</Version>
+    <Version>1.2.0</Version>
     <Company>loew.fi</Company>
     <Product>Puck &amp; Play</Product>
     <ApplicationIcon>..\assets\puck-play.ico</ApplicationIcon>

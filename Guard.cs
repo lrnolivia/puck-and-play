@@ -16,7 +16,7 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Puck & Play")]
 [assembly: AssemblyProduct("Puck & Play")]
 [assembly: AssemblyCompany("loew.fi")]
-[assembly: AssemblyVersion("2.6.0.0")]
+[assembly: AssemblyVersion("1.2.0.0")]
 
 namespace SteamControllerGuard
 {

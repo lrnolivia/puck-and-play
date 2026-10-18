@@ -364,7 +364,7 @@ internal static class Previews
     static Snapshot Sample(bool present = true) => new Snapshot
     {
         At = DateTime.Now.ToString("o"),
-        Version = "2.6.0",
+        Version = "1.2.0",
         Controller = new ControllerObservation { At = DateTime.Now.ToString("o"), Status = present ? "Connected" : "Unavailable", Connected = present ? (bool?)true : null, Detail = present ? "Live controller reports received through the puck." : "Connect the puck to check the controller." },
         Status = present ? "Puck ready; Steam running" : "Puck absent: waiting for USB connection",
         SteamRunning = true,

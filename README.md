@@ -13,7 +13,7 @@ You need **Windows 11, x64**, Steam, and the Steam Controller receiver identifie
 ### Install
 
 1. Connect one working puck. Disconnect additional pucks during setup.
-2. Download and open **PuckAndPlay-2.6.0-Setup.exe** from Releases.
+2. Download and open **PuckAndPlay-1.2.0-Setup.exe** from Releases.
 3. Choose whether to open at sign-in and enable USB recovery.
 4. Approve Windows' administrator prompt if you enable recovery. Routine checks then run without prompts.
 

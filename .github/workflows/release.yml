@@ -44,5 +44,5 @@ jobs:
           Choose Setup for installation and startup options, or extract the portable ZIP and run PuckAndPlay.exe. Optional USB recovery requires administrator approval. Releases are unsigned. See the README for supported hardware, recovery limits, and troubleshooting.
           '@ | Set-Content -LiteralPath $notes -Encoding utf8
           $assets=@(Get-ChildItem dist/*-Setup.exe,dist/*-portable-windows-x64.zip,dist/SHA256SUMS.txt | ForEach-Object FullName)
-          gh release create $env:RELEASE_TAG --verify-tag --title ('Puck & Play '+$env:RELEASE_TAG.TrimStart('v')) --notes-file $notes @assets
+          gh release create $env:RELEASE_TAG --verify-tag --latest --title ('Puck & Play '+$env:RELEASE_TAG.TrimStart('v')) --notes-file $notes @assets
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }

@@ -20,6 +20,7 @@ public partial class App : Application
     bool warm;
     int pending;
     internal bool IsPreview;
+    internal bool TestMenuActivation;
     public App()
     {
         InitializeComponent();

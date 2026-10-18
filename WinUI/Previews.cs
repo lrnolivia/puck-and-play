@@ -364,7 +364,7 @@ internal static class Previews
     static Snapshot Sample(bool present = true) => new Snapshot
     {
         At = DateTime.Now.ToString("o"),
-        Version = "1.2.2",
+        Version = "1.2.3",
         Controller = new ControllerObservation { At = DateTime.Now.ToString("o"), Status = present ? "Connected" : "Unavailable", Connected = present ? (bool?)true : null, Detail = present ? "Live controller reports received through the puck." : "Connect the puck to check the controller." },
         Status = present ? "Puck ready; Steam running" : "Puck absent: waiting for USB connection",
         SteamRunning = true,
@@ -481,10 +481,13 @@ internal static class Previews
         keeper.AppWindow.Move(new PointInt32(-12000, -12000));
         keeper.AppWindow.Show(false);
         Bridge.Sample = Sample();
+        app.TestMenuActivation = true;
         await MenuAnchor(app, directory);
         using var activation = new InterfaceActivation(app);
         var window = app.EnsureMenu();
+        window.Prepare();
         await Task.Delay(250);
+        await MenuStacking.Verify(window, directory);
         var bounds = Microsoft.UI.Windowing.DisplayArea.Primary.WorkArea;
         var timings = new List<double>();
         using var process = System.Diagnostics.Process.GetCurrentProcess();
@@ -520,7 +523,10 @@ internal static class Previews
                 if ((string)care.Tag != (paused ? "resume" : "pause"))
                     throw new InvalidOperationException("The menu reused a stale care action.");
                 if (cycle == 0)
+                {
+                    await Task.Delay(250); // Let the compositor present the native popup.
                     await MenuCapture.Save(bounds.X + bounds.Width - 800, bounds.Y + bounds.Height - 800, 800, 800, Path.Combine(directory, "desktop-menu-and-host.png"));
+                }
             }
             finally
             {

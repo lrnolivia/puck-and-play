@@ -608,6 +608,7 @@ internal sealed class MenuWindow : Window
             if (closed) return;
             IsOpen = false;
             AppWindow?.Hide();
+            ((OverlappedPresenter)AppWindow.Presenter).IsAlwaysOnTop = false;
             Dismissed?.Invoke();
         };
     }
@@ -638,7 +639,9 @@ internal sealed class MenuWindow : Window
         this.x = x;
         this.y = y;
         pendingOpen = true;
-        if (app.IsPreview) AppWindow.Show(false);
+        // The tray overflow panel is topmost. Its menu must share that band.
+        ((OverlappedPresenter)AppWindow.Presenter).IsAlwaysOnTop = true;
+        if (app.IsPreview && !app.TestMenuActivation) AppWindow.Show(false);
         else Activate();
         if (Root.IsLoaded)
             ShowPending();

@@ -36,9 +36,9 @@ jobs:
           @'
           Puck & Play for Windows 11 x64.
 
-          - Removes the stray helper window underneath the tray menu.
-          - Keeps the native menu ready so tray clicks open it promptly.
-          - Reuses the menu host and refreshes its status on every opening.
+          - Opens the tray menu above Windows' tray overflow panel.
+          - Releases the menu's topmost priority as soon as it closes.
+          - Preserves fast opening and the invisible menu host from 1.2.2.
 
           Choose Setup for installation and startup options, or extract the portable ZIP and run PuckAndPlay.exe. Optional USB recovery requires administrator approval. Releases are unsigned. See the README for supported hardware, recovery limits, and troubleshooting.
           '@ | Set-Content -LiteralPath $notes -Encoding utf8

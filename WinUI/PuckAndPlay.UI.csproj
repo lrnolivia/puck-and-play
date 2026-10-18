@@ -44,4 +44,12 @@
     <PackageReference Include="Vortice.D3DCompiler" Version="3.8.3" />
     <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
   </ItemGroup>
+  <Target Name="PublishApplicationXaml" AfterTargets="Publish">
+    <ItemGroup>
+      <ApplicationXamlResource Include="$(TargetDir)App.xbf;$(TargetDir)$(AssemblyName).pri" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ApplicationXamlResource)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+    <Error Condition="!Exists('$(PublishDir)App.xbf') Or !Exists('$(PublishDir)$(AssemblyName).pri')"
+           Text="The published interface is missing its application XAML resources." />
+  </Target>
 </Project>

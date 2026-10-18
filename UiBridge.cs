@@ -14,7 +14,6 @@ namespace SteamControllerGuard
     {
         [DllImport("user32.dll")]
         static extern bool GetPhysicalCursorPos(out System.Drawing.Point point);
-
         public static bool TryOpenMenu()
         {
             System.Drawing.Point point;
@@ -41,13 +40,54 @@ namespace SteamControllerGuard
         {
             if (!Available)
                 return false;
+            string command = "--" + view;
+            if (TrySend(command))
+                return true;
             try
             {
-                using (var launched = Process.Start(new ProcessStartInfo(Executable, "--" + view) { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(Executable) }))
+                using (var launched = Process.Start(new ProcessStartInfo(Executable, command) { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(Executable) }))
                 { }
                 return true;
             }
             catch (Exception e) { Files.Log("Modern interface launch failed: " + e.Message, false); return false; }
+        }
+        public static void Warm()
+        {
+            using (var process = Process.GetCurrentProcess())
+                TryOpen("warm " + process.Id);
+        }
+        public static void Stop()
+        {
+            TrySend("--exit");
+        }
+        static bool TrySend(string command)
+        {
+            try
+            {
+                string name;
+                using (var identity = WindowsIdentity.GetCurrent())
+                    name = "loew.fi.PuckPlay.Interface." + identity.User.Value + "." + typeof(UiHost).Assembly.GetName().Version;
+                using (var pipe = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous))
+                {
+                    pipe.Connect(40);
+                    byte[] message = Encoding.UTF8.GetBytes(command);
+                    var write = pipe.WriteAsync(message, 0, message.Length);
+                    if (!write.Wait(100))
+                    {
+                        write.ContinueWith(task => { var ignored = task.Exception; }, System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
+                        return false;
+                    }
+                    // Acceptance is asynchronous; do not wait for XAML layout on the tray thread.
+                    return true;
+                }
+            }
+            catch (IOException) { return false; }
+            catch (TimeoutException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
+            catch (AggregateException)
+            {
+                return false;
+            }
         }
     }
 

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Diagnostics;
+using System.Threading;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
@@ -13,6 +15,9 @@ public partial class App : Application
     internal DispatcherQueue Queue { get; } = DispatcherQueue.GetForCurrentThread();
     readonly Dictionary<string, FluentWindow> windows = new Dictionary<string, FluentWindow>();
     MenuWindow? menu;
+    InterfaceActivation? activation;
+    CancellationTokenSource? parentWait;
+    bool warm;
     int pending;
     internal bool IsPreview;
     public App()
@@ -26,6 +31,17 @@ public partial class App : Application
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         string[] launch = Environment.GetCommandLineArgs();
+        int menuTest = Array.IndexOf(launch, "--test-menu");
+        if (menuTest >= 0 && menuTest + 1 < launch.Length)
+        {
+            IsPreview = true;
+            Bridge.Preview = true;
+            Directory.CreateDirectory(launch[menuTest + 1]);
+            try { await Previews.VerifyMenu(this, launch[menuTest + 1]); }
+            catch (Exception error) { File.WriteAllText(Path.Combine(launch[menuTest + 1], "error.txt"), error.ToString()); Environment.ExitCode = 1; }
+            Exit();
+            return;
+        }
         int rendererTest = Array.IndexOf(launch, "--test-renderer");
         if (rendererTest >= 0 && rendererTest + 1 < launch.Length)
         {
@@ -67,7 +83,54 @@ public partial class App : Application
             Exit();
             return;
         }
+        activation = new InterfaceActivation(this);
         Handle(Environment.CommandLine);
+    }
+    internal static bool ValidActivation(string command) => command == "--status" || command == "--about" || command == "--details" || command == "--reconnect" || command == "--exit"
+        || Regex.IsMatch(command, @"^--menu -?\d{1,6} -?\d{1,6}$") || Regex.IsMatch(command, @"^--warm \d{1,10}$");
+
+    async void KeepWarm(int processId)
+    {
+        parentWait?.Cancel();
+        var cancellation = new CancellationTokenSource();
+        parentWait = cancellation;
+        try
+        {
+            using var parent = Process.GetProcessById(processId);
+            // Preload XAML without activating a window or running the status animation.
+            warm = true;
+            EnsureMenu().Prepare();
+            await parent.WaitForExitAsync(cancellation.Token);
+            if (!cancellation.IsCancellationRequested)
+                Exit();
+        }
+        catch (OperationCanceledException) { }
+        catch (ArgumentException) { warm = false; MaybeExit(); }
+        catch (Exception error) when (error is InvalidOperationException || error is System.ComponentModel.Win32Exception)
+        {
+            Bridge.Log(error);
+            warm = false;
+            MaybeExit();
+        }
+        finally
+        {
+            if (parentWait == cancellation) parentWait = null;
+            cancellation.Dispose();
+        }
+    }
+    internal MenuWindow EnsureMenu()
+    {
+        if (menu == null)
+        {
+            menu = new MenuWindow(this, 0, 0, true);
+            menu.Dismissed += MaybeExit;
+        }
+        return menu;
+    }
+    internal void DisposeActivation()
+    {
+        parentWait?.Cancel();
+        activation?.Dispose();
     }
     internal void Handle(string command)
     {
@@ -76,17 +139,16 @@ public partial class App : Application
             Exit();
             return;
         }
-        var match = Regex.Match(command, @"--menu\s+(-?\d+)\s+(-?\d+)");
-        if (match.Success)
+        var parent = Regex.Match(command, @"--warm\s+(\d+)");
+        if (parent.Success && int.TryParse(parent.Groups[1].Value, out int processId))
         {
-            menu?.Close();
-            menu = new MenuWindow(this, int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value));
-            menu.Closed += delegate
-            {
-                menu = null;
-                MaybeExit();
-            };
-            menu.Open();
+            KeepWarm(processId);
+            return;
+        }
+        var match = Regex.Match(command, @"--menu\s+(-?\d+)\s+(-?\d+)");
+        if (match.Success && int.TryParse(match.Groups[1].Value, out int x) && int.TryParse(match.Groups[2].Value, out int y))
+        {
+            EnsureMenu().Open(x, y);
             return;
         }
         Open(command.Contains("--about", StringComparison.Ordinal) ? "about" : command.Contains("--details", StringComparison.Ordinal) ? "details" : "status",
@@ -129,7 +191,7 @@ public partial class App : Application
     }
     void MaybeExit()
     {
-        if (!IsPreview && windows.Count == 0 && menu == null && pending == 0)
-            Queue.TryEnqueue(() => { if (windows.Count == 0 && menu == null && pending == 0) Exit(); });
+        if (!IsPreview && !warm && windows.Count == 0 && menu?.IsOpen != true && pending == 0)
+            Queue.TryEnqueue(() => { if (!warm && windows.Count == 0 && menu?.IsOpen != true && pending == 0) Exit(); });
     }
 }

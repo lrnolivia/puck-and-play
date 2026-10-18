@@ -36,12 +36,9 @@ jobs:
           @'
           Puck & Play for Windows 11 x64.
 
-          - A tray menu that opens at the tray icon instead of the center of the screen.
-          - A clearer README with the app logo and screenshots.
-          - Live controller connection status, including keyboard/mouse HID interfaces.
-          - A Test inputs button that opens Steam's controller settings.
-          - Receiver enrollment and bounded recovery for supported USB faults.
-          - A native animated crystal with shared graphics resources and idle rendering suspension.
+          - Removes the stray helper window underneath the tray menu.
+          - Keeps the native menu ready so tray clicks open it promptly.
+          - Reuses the menu host and refreshes its status on every opening.
 
           Choose Setup for installation and startup options, or extract the portable ZIP and run PuckAndPlay.exe. Optional USB recovery requires administrator approval. Releases are unsigned. See the README for supported hardware, recovery limits, and troubleshooting.
           '@ | Set-Content -LiteralPath $notes -Encoding utf8

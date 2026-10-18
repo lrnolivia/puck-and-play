@@ -11,7 +11,7 @@ namespace SteamControllerGuard
     {
         public const string Name = "Puck & Play";
         public const string MenuName = "Puck && Play";
-        public const string Version = "1.2.1";
+        public const string Version = "1.2.2";
         public static Icon LoadIcon(ConnectionState state)
         {
             string key = state == ConnectionState.Ready ? "green" : state == ConnectionState.Attention ? "yellow" : state == ConnectionState.Disconnected ? "red" : "grey";

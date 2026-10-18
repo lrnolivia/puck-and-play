@@ -547,13 +547,32 @@ internal sealed class DetailsWindow : FluentWindow
 internal sealed class MenuWindow : Window
 {
     readonly App app;
+    MenuFlyoutItem statusItem = null!, pauseItem = null!;
+    BitmapIcon statusIcon = null!;
+    string statusKey = "";
     internal Grid Root { get; } = new Grid { Background = new SolidColorBrush(Colors.Transparent) };
     internal MenuFlyout Flyout { get; } = new MenuFlyout { ShouldConstrainToRootBounds = false };
-    bool opened;
-    bool waiting, dismissed;
-    internal MenuWindow(App app, int x, int y)
+    int x, y;
+    bool pendingOpen;
+    bool closed;
+    internal bool IsOpen { get; private set; }
+    internal event Action? Dismissed;
+    readonly IntPtr handle;
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern int GetWindowLongW(IntPtr window, int index);
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern int SetWindowLongW(IntPtr window, int index, int value);
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern bool SetLayeredWindowAttributes(IntPtr window, uint key, byte alpha, uint flags);
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern bool GetLayeredWindowAttributes(IntPtr window, out uint key, out byte alpha, out uint flags);
+    internal bool HostIsTransparent => GetLayeredWindowAttributes(handle, out _, out byte alpha, out uint flags) && (flags & 2) != 0 && alpha == 0;
+    internal MenuWindow(App app, int x, int y, bool prepareOnly = false)
     {
         this.app = app;
+        this.x = x;
+        this.y = y;
+        pendingOpen = !prepareOnly;
         Content = Root;
         Title = "Puck & Play menu";
         AppWindow.IsShownInSwitchers = false;
@@ -562,46 +581,71 @@ internal sealed class MenuWindow : Window
         presenter.IsResizable = false;
         presenter.IsMinimizable = false;
         presenter.IsMaximizable = false;
+        presenter.PreferredMinimumWidth = 1;
+        presenter.PreferredMinimumHeight = 1;
+        handle = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        // A transparent XAML brush doesn't make a desktop Window transparent.
+        // Only the host is invisible; the native flyout owns a separate window.
+        SetWindowLongW(handle, -20, GetWindowLongW(handle, -20) | 0x80000);
+        if (!SetLayeredWindowAttributes(handle, 0, 0, 2))
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         Build();
-        Root.Loaded += delegate
-        {
-            if (!opened)
-            {
-                opened = true;
-                // The first show can apply Windows' default size and centered
-                // position, so place the host after its native window is ready.
-                AppWindow.MoveAndResize(new RectInt32(x, y, 2, 2));
-                var origin = AppWindow.Position;
-                double scale = Root.XamlRoot.RasterizationScale;
-                Flyout.ShowAt(Root, new FlyoutShowOptions
-                {
-                    Position = new Windows.Foundation.Point((x - origin.X) / scale, (y - origin.Y) / scale)
-                });
-            }
-        };
+        AppWindow.MoveAndResize(new RectInt32(-32000, -32000, 1, 1));
+        Root.Loaded += delegate { ShowPending(); };
+        Closed += delegate { closed = true; };
         Flyout.Closed += delegate
         {
-            if (waiting)
-                dismissed = true;
-            else
-                Close();
+            if (closed) return;
+            IsOpen = false;
+            AppWindow?.Hide();
+            Dismissed?.Invoke();
         };
     }
-    internal void Open()
+    internal void Prepare()
     {
-        Activate();
+        if (!Root.IsLoaded)
+            AppWindow.Show(false);
+    }
+    internal void Open(int x, int y)
+    {
+        Flyout.Hide();
+        this.x = x;
+        this.y = y;
+        pendingOpen = true;
+        if (app.IsPreview) AppWindow.Show(false);
+        else Activate();
+        if (Root.IsLoaded)
+            ShowPending();
+    }
+    void ShowPending()
+    {
+        if (!pendingOpen)
+            return;
+        pendingOpen = false;
+        // Windows may apply its default bounds on first show, so place the
+        // host again after loading. Coordinates from the tray are physical.
+        AppWindow.MoveAndResize(new RectInt32(x, y, 1, 1));
+        Refresh();
+        var origin = AppWindow.Position;
+        double scale = Root.XamlRoot.RasterizationScale;
+        IsOpen = true;
+        Flyout.ShowAt(Root, new FlyoutShowOptions
+        {
+            Position = new Windows.Foundation.Point((x - origin.X) / scale, (y - origin.Y) / scale)
+        });
     }
     void Build()
     {
-        var snapshot = Bridge.Read();
-        bool paused = snapshot != null && snapshot.PausedUntil > DateTime.UtcNow;
-        Flyout.Items.Add(new MenuFlyoutItem { Text = "Puck & Play", IsEnabled = false, FontWeight = FontWeights.SemiBold, Icon = new BitmapIcon { UriSource = new Uri(StatusArt.File(StatusArt.CurrentKey())), ShowAsMonochrome = false } });
-        Flyout.Items.Add(new MenuFlyoutItem { Text = snapshot?.Status ?? "Checking your puck...", IsEnabled = false });
+        statusIcon = new BitmapIcon { ShowAsMonochrome = false };
+        Flyout.Items.Add(new MenuFlyoutItem { Text = "Puck & Play", IsEnabled = false, FontWeight = FontWeights.SemiBold, Icon = statusIcon });
+        statusItem = new MenuFlyoutItem { IsEnabled = false };
+        Flyout.Items.Add(statusItem);
         Flyout.Items.Add(new MenuFlyoutSeparator());
         Flyout.Items.Add(Navigate("Open Puck & Play", Symbol.Home, () => app.Open("status")));
         Flyout.Items.Add(Command("Check now", Symbol.Refresh, "check"));
         Flyout.Items.Add(Command("Steam controller settings", Symbol.Setting, "steam"));
-        Flyout.Items.Add(Command(paused ? "Resume automatic care" : "Pause for 30 minutes", paused ? Symbol.Play : Symbol.Pause, paused ? "resume" : "pause"));
+        pauseItem = Command("Pause for 30 minutes", Symbol.Pause, "pause");
+        Flyout.Items.Add(pauseItem);
         Flyout.Items.Add(new MenuFlyoutSeparator());
         var trouble = new MenuFlyoutSubItem { Text = "Troubleshooting", Icon = new SymbolIcon(Symbol.Help) };
         trouble.Items.Add(Navigate("Reconnect puck...", Symbol.Sync, () => app.Open("status", true)));
@@ -613,6 +657,22 @@ internal sealed class MenuWindow : Window
         Flyout.Items.Add(Navigate("About Puck & Play", Symbol.Help, () => app.Open("about")));
         Flyout.Items.Add(new MenuFlyoutSeparator());
         Flyout.Items.Add(Command("Quit Puck & Play", Symbol.Cancel, "quit"));
+        Refresh();
+    }
+    void Refresh()
+    {
+        var snapshot = Bridge.Read();
+        statusItem.Text = snapshot?.Status ?? "Checking your puck...";
+        bool paused = snapshot != null && snapshot.PausedUntil > DateTime.UtcNow;
+        pauseItem.Text = paused ? "Resume automatic care" : "Pause for 30 minutes";
+        pauseItem.Tag = paused ? "resume" : "pause";
+        ((SymbolIcon)pauseItem.Icon).Symbol = paused ? Symbol.Play : Symbol.Pause;
+        string key = StatusArt.CurrentKey();
+        if (key != statusKey)
+        {
+            statusKey = key;
+            statusIcon.UriSource = new Uri(StatusArt.File(key));
+        }
     }
     static MenuFlyoutItem Navigate(string text, Symbol icon, Action action)
     {
@@ -625,15 +685,10 @@ internal sealed class MenuWindow : Window
     }
     MenuFlyoutItem Command(string text, Symbol icon, string command)
     {
-        var item = new MenuFlyoutItem { Text = text, Icon = new SymbolIcon(icon) };
+        var item = new MenuFlyoutItem { Text = text, Icon = new SymbolIcon(icon), Tag = command };
         item.Click += async delegate
         {
-            waiting = true;
-            try
-            {
-                await app.Command(command);
-            }
-            finally { waiting = false; if (dismissed) Close(); }
+            await app.Command((string)item.Tag);
         };
         return item;
     }

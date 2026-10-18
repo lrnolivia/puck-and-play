@@ -16,7 +16,7 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("Puck & Play")]
 [assembly: AssemblyProduct("Puck & Play")]
 [assembly: AssemblyCompany("loew.fi")]
-[assembly: AssemblyVersion("1.2.1.0")]
+[assembly: AssemblyVersion("1.2.2.0")]
 
 namespace SteamControllerGuard
 {
@@ -435,6 +435,7 @@ namespace SteamControllerGuard
                     HandleUiCommand(command);
                 });
             });
+            UiHost.Warm();
             timer = new System.Windows.Forms.Timer { Interval = 5000 };
             timer.Tick += Tick;
             timer.Start();
@@ -789,6 +790,7 @@ namespace SteamControllerGuard
         protected override void ExitThreadCore()
         {
             exiting = true;
+            UiHost.Stop();
             uiBridge.Dispose();
             timer.Stop();
             timer.Dispose();

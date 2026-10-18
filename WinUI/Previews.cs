@@ -364,7 +364,7 @@ internal static class Previews
     static Snapshot Sample(bool present = true) => new Snapshot
     {
         At = DateTime.Now.ToString("o"),
-        Version = "1.2.1",
+        Version = "1.2.2",
         Controller = new ControllerObservation { At = DateTime.Now.ToString("o"), Status = present ? "Connected" : "Unavailable", Connected = present ? (bool?)true : null, Detail = present ? "Live controller reports received through the puck." : "Connect the puck to check the controller." },
         Status = present ? "Puck ready; Steam running" : "Puck absent: waiting for USB connection",
         SteamRunning = true,
@@ -415,6 +415,7 @@ internal static class Previews
         }
         await Capture(popup.Child, path);
         window.Flyout.Hide();
+        window.Close();
     }
     static async Task MenuAnchor(App app, string directory)
     {
@@ -453,11 +454,16 @@ internal static class Previews
                     double reservedY = Math.Max(work.Y - bounds.Y, bounds.Y + bounds.Height - work.Y - work.Height);
                     bool nearAnchor = gapX <= reservedX + 16 * scale && gapY <= reservedY + 16 * scale;
                     bool onScreen = left >= bounds.X - 2 && top >= bounds.Y - 2 && right <= bounds.X + bounds.Width + 2 && bottom <= bounds.Y + bounds.Height + 2;
-                    results.Add(new { Requested = new { point.X, point.Y }, Host = new { X = window.AppWindow.Position.X, Y = window.AppWindow.Position.Y }, Menu = new { left, top, right, bottom }, Scale = scale, NearAnchor = nearAnchor, OnScreen = onScreen });
+                    results.Add(new { Requested = new { point.X, point.Y }, Host = new { X = window.AppWindow.Position.X, Y = window.AppWindow.Position.Y, window.AppWindow.Size.Width, window.AppWindow.Size.Height, Transparent = window.HostIsTransparent }, Menu = new { left, top, right, bottom }, Scale = scale, NearAnchor = nearAnchor, OnScreen = onScreen });
                     if (!nearAnchor || !onScreen)
                         throw new InvalidOperationException("The tray menu opened away from its invocation point or outside its display.");
+                    if (!window.HostIsTransparent)
+                    {
+                        await File.WriteAllTextAsync(Path.Combine(directory, "host-failure.json"), System.Text.Json.JsonSerializer.Serialize(results));
+                        throw new InvalidOperationException("The menu host can appear behind the flyout.");
+                    }
                 }
-                finally { window.Flyout.Hide(); }
+                finally { window.Flyout.Hide(); window.Close(); }
             }
         }
         await File.WriteAllTextAsync(Path.Combine(directory, "menu-anchor.json"), System.Text.Json.JsonSerializer.Serialize(new
@@ -465,6 +471,83 @@ internal static class Previews
             Cases = results,
             HardwareActions = 0
         }));
+    }
+    internal static async Task VerifyMenu(App app, string directory)
+    {
+        var keeper = new FluentWindow("Menu checks", 10, 10);
+        keeper.AppWindow.Move(new PointInt32(-12000, -12000));
+        keeper.AppWindow.Show(false);
+        Bridge.Sample = Sample();
+        await MenuAnchor(app, directory);
+        using var activation = new InterfaceActivation(app);
+        var window = app.EnsureMenu();
+        await Task.Delay(250);
+        var bounds = Microsoft.UI.Windowing.DisplayArea.Primary.WorkArea;
+        var timings = new List<double>();
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        int baselineHandles = 0;
+        long baselineBytes = 0;
+        var cpu = process.TotalProcessorTime;
+        await Task.Delay(1500);
+        process.Refresh();
+        double idleCpu = (process.TotalProcessorTime - cpu).TotalMilliseconds;
+        for (int cycle = 0; cycle < 64; cycle++)
+        {
+            var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            void OnOpened(object? sender, object args) => opened.TrySetResult();
+            void OnClosed(object? sender, object args) => closed.TrySetResult();
+            window.Flyout.Opened += OnOpened;
+            window.Flyout.Closed += OnClosed;
+            bool paused = cycle % 2 != 0;
+            Bridge.Sample!.PausedUntil = paused ? DateTime.UtcNow.AddMinutes(30) : DateTime.MinValue;
+            try
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                using var pipe = new System.IO.Pipes.NamedPipeClientStream(".", InterfaceActivation.Name, System.IO.Pipes.PipeDirection.Out,
+                    System.IO.Pipes.PipeOptions.Asynchronous | System.IO.Pipes.PipeOptions.CurrentUserOnly);
+                await pipe.ConnectAsync(1000);
+                await pipe.WriteAsync(System.Text.Encoding.UTF8.GetBytes("--menu " + (bounds.X + bounds.Width - 40) + " " + (bounds.Y + bounds.Height - 10)));
+                await opened.Task.WaitAsync(TimeSpan.FromSeconds(2));
+                watch.Stop();
+                timings.Add(watch.Elapsed.TotalMilliseconds);
+                if (watch.ElapsedMilliseconds > 250 || !window.HostIsTransparent || idleCpu > 150)
+                    throw new InvalidOperationException("The menu exceeded its latency, transparency or idle CPU budget.");
+                var care = window.Flyout.Items.OfType<MenuFlyoutItem>().Single(item => (item.Tag as string) is "pause" or "resume");
+                if ((string)care.Tag != (paused ? "resume" : "pause"))
+                    throw new InvalidOperationException("The menu reused a stale care action.");
+                if (cycle == 0)
+                    await MenuCapture.Save(bounds.X + bounds.Width - 800, bounds.Y + bounds.Height - 800, 800, 800, Path.Combine(directory, "desktop-menu-and-host.png"));
+            }
+            finally
+            {
+                window.Flyout.Opened -= OnOpened;
+                window.Flyout.Hide();
+                await closed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+                window.Flyout.Closed -= OnClosed;
+            }
+            if (!window.HostIsTransparent || window.AppWindow.IsVisible)
+                throw new InvalidOperationException("The dismissed menu host was not transparent and hidden.");
+            if (cycle == 9 || cycle + 1 == 64)
+            {
+                GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+                await Task.Delay(100);
+                process.Refresh();
+                if (cycle == 9) { baselineHandles = process.HandleCount; baselineBytes = process.PrivateMemorySize64; }
+            }
+        }
+        process.Refresh();
+        int handles = process.HandleCount - baselineHandles;
+        long bytes = process.PrivateMemorySize64 - baselineBytes;
+        await File.WriteAllTextAsync(Path.Combine(directory, "menu-performance.json"), System.Text.Json.JsonSerializer.Serialize(new
+        {
+            Cycles = timings.Count, WarmMaxMilliseconds = timings.Skip(1).Max(), OpenMilliseconds = timings,
+            HandleGrowth = handles, PrivateBytesGrowth = bytes, IdleCpuMilliseconds = idleCpu,
+            HostTransparent = window.HostIsTransparent, HostHiddenWhenClosed = !window.AppWindow.IsVisible, HardwareActions = 0
+        }));
+        if (handles > 12 || bytes > 16 * 1024 * 1024)
+            throw new InvalidOperationException("The warm menu retained resources across repeated use.");
+        window.Close(); keeper.Close();
     }
     internal static async Task Render(App app, string directory)
     {

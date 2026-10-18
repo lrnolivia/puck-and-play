@@ -12,7 +12,7 @@ using System.Windows.Forms;
 [assembly: AssemblyTitle("Puck & Play setup")]
 [assembly: AssemblyProduct("Puck & Play")]
 [assembly: AssemblyCompany("loew.fi")]
-[assembly: AssemblyVersion("1.2.1.0")]
+[assembly: AssemblyVersion("1.2.2.0")]
 
 namespace PuckPlay.Setup
 {
